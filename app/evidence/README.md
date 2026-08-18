@@ -1,5 +1,14 @@
 # Evidence for constraint 2 — no wasted row renders on keystroke
 
+## React DevTools Profiler recording
+
+`profiler-one-keystroke.json` — exported from React DevTools (profile format v5),
+recorded on the unvirtualised list with one keystroke typed into the search box
+while a detail panel was open. It contains a single commit in which exactly
+**2 components rendered (`App` and `DetailPanel`) and 0 of the 5,000 mounted
+`OrderRow` components re-rendered**. Load it via the "Load profile" button in the
+React DevTools Profiler tab to inspect.
+
 ## Instrumentation
 
 Every render of the memoized `OrderRow` component increments `window.__rowRenders`
@@ -25,9 +34,9 @@ start), so these recordings demonstrate that state rather than a before/after di
 3. Type one character in the search box.
 4. Read `window.__rowRenders` again — the delta is 0 for every row whose content did not change.
 
-Or with React DevTools → Profiler: record, type one keystroke, stop. The flamegraph
-shows `App` and the table rendering while every surviving `OrderRow` reports
-"Did not render during this session" / is grayed out.
+Or with React DevTools → Profiler: record, type one keystroke, stop — this is
+exactly how `profiler-one-keystroke.json` was produced. The flamegraph shows `App`
+rendering while every surviving `OrderRow` is grayed out ("did not render").
 
 ## Screenshots
 

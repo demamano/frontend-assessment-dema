@@ -102,23 +102,23 @@ Cost, stated plainly: initial DOM construction for 3,000 rows still takes a few 
 
 ### Q7
 
-**(b), the forms.** Silent destruction of typed work is unrecoverable data loss, and it teaches users the product can't be trusted — a freeze is visible and survivable, lost input is not. It can also fire *during* the demo: server-side validation failing while a supplier watches their data vanish is disqualifying; a known 4-second load can be scripted around (open the table before you talk over it).
+**(b), the forms.** Silently destroying typed work is unrecoverable data loss — a freeze is visible and survivable, lost input is not. And it can fire *during* the demo: validation failing while a supplier watches their data vanish is disqualifying; a known 4-second load can be scripted around (open the table before talking over it).
 
-What stays broken because of my choice: the 12,000-row table still freezes the tab ~4 seconds on load, including at the demo.
+What stays broken: the 12,000-row table still freezes the tab ~4 seconds on load, including at the demo.
 
-To the person who wanted (a): "You're right that the freeze is embarrassing, and it's my first task after the demo — booked. But losing a user's typed data mid-demo would end the conversation; slow-but-correct won't."
+To the person who wanted (a): "You're right the freeze is embarrassing — it's my first task after the demo, booked. But losing typed data mid-demo would end the conversation; slow-but-correct won't."
 
 ### Q8
 
 **Conflicting pairs:**
 
-- **2 vs 3.** "Select all" includes products on pages never loaded, but the dialog must show the *exact* SKUs affected. You cannot display what you haven't fetched, and fetching every matching product to display defeats the reason the pages weren't loaded (the match set is unbounded). **Keep 2** (as server-side "update by filter" or an ids-only fetch). Ticket: confirmation shows exact count + first 50 SKUs + "download full list (CSV)". Question: *is a count plus sample acceptable for confirmation, or do you audit exact SKUs — and if exact, is an ids-only endpoint acceptable?*
+- **2 vs 3.** "Select all" includes products on pages never loaded, but the dialog must show the *exact* SKUs affected. You cannot display what you haven't fetched, and fetching every match just to display it defeats the reason those pages weren't loaded. **Keep 2** (as server-side "update by filter" or an ids-only fetch). Ticket: confirmation shows exact count, first 50 SKUs, "download full list". Question: *is count plus sample acceptable, or do you audit exact SKUs — and if exact, is an ids-only endpoint fine?*
 
-- **4 vs 5.** Above 500 ids the client must send multiple requests; any request can fail independently, so client-side chunking can never be atomic. Atomicity across chunks is only possible server-side. **Keep 4** (a real API constraint). Ticket: chunked submission, per-chunk results, retry of failed chunks; atomicity dropped unless backend adds a transactional bulk endpoint. Question: *can the backend expose one transactional bulk operation (or accept a filter server-side)? If yes, 5 comes back.*
+- **4 vs 5.** Above 500 ids the client must send several requests; each can fail independently, so client-side chunking is never atomic. **Keep 4** (a real API constraint). Ticket: chunked submission, per-chunk results, retry of failed chunks; atomicity dropped unless the backend adds a transactional bulk endpoint. Question: *can the backend expose one transactional bulk operation (or accept a filter server-side)? If yes, 5 returns.*
 
-- **5 vs 6.** "All or nothing" can never produce a toast saying "X succeeded, Y failed" — 6's copy presumes exactly the partial failure 5 forbids. **Keep 6** (it matches chunked reality). Ticket: result toast with succeeded/failed counts and a "view failures / retry" list. Question: *when a later chunk fails, do already-applied chunks stay applied or get best-effort reverted?*
+- **5 vs 6.** "All or nothing" can never yield a toast saying "X succeeded, Y failed" — 6 presumes exactly the partial failure 5 forbids. **Keep 6.** Ticket: toast with succeeded/failed counts plus a "view failures / retry" list. Question: *when a later chunk fails, do already-applied chunks stay applied or get reverted?*
 
-(1 vs 2 is an ambiguity, not a contradiction: "selection persists while filters change" needs snapshot-of-ids semantics pinned down for filter-based select-all.)
+(1 vs 2 is ambiguity, not contradiction: "selection persists across filter changes" needs snapshot-of-ids semantics pinned for filter-based select-all.)
 
 **Survive unchanged: three — #1, #4, #6.**
 
@@ -142,13 +142,13 @@ To the person who wanted (a): "You're right that the freeze is embarrassing, and
 
 ### Q10
 
-**First 60 minutes:** (0–5) Confirm scope: compare `origin/development` against my local clone and CI's last checkout; identify the pre-push tip SHA. Immediately enable force-push/deletion protection on `development` so it can't happen again mid-recovery. (5–15) Message the two blocked developers (below). Announce in the team channel: nobody pulls, rebases onto, or pushes `development` until the all-clear. (15–40) Restore: push the recovered tip back (`git push origin <sha>:development`), sourcing the freshest copy from a local clone, CI workspace, or GitHub's push-events API. The four PR branches are recoverable from GitHub's `refs/pull/<n>/head` even though their source branches were deleted — fetch each and push it back under its original name. (40–60) Verify: PRs show their commits again, CI green on `development`, a second developer confirms the SHA matches what they had. All-clear message.
+**First 60 minutes:** (0–5) Confirm scope: compare `origin/development` with my local clone and CI's last checkout; identify the pre-push tip SHA. Enable force-push/deletion protection on the branch immediately. (5–15) Message the blocked developers; announce that nobody pulls, rebases onto, or pushes `development` until the all-clear. (15–40) Restore: push the recovered tip back from the freshest source (local clone, CI workspace, or GitHub's push-events API). The four PR branches survive as GitHub's `refs/pull/<n>/head` — fetch each, push it back under its original name. (40–60) Verify: PRs show their commits, CI green, a second developer confirms the SHA. All-clear.
 
-**Blocked developers:** at minute ~5: "development was force-pushed and lost 11 commits; I'm restoring from a good copy. Don't pull or push; your local work is safe — ETA ~10:00." Again at all-clear, with exact pull instructions.
+**Blocked developers:** at ~09:05: "development lost 11 commits to a force-push; restoring from a good copy. Don't pull or push; your local work is safe; ETA 10:00." Again at all-clear, with pull instructions.
 
-**Business owner:** same day, after resolution: production unaffected, no work lost, protection now enforced. Before resolution only if it will run past midday or threatens a date — they hear it from me, not secondhand.
+**Business owner:** same day, after resolution — production unaffected, nothing lost, protection enabled. Before resolution only if a delivery date is at risk; they hear it from me, not secondhand.
 
-**Permanent change:** branch protection on `development` (no force-push, no deletion, PR-only merges). Agreed by the engineering lead and the repo admin; announced to the team. Blameless — the fix is the guardrail, not punishing the developer.
+**Permanently:** branch protection on `development` (no force-push or deletion, PR-only merges), agreed by the engineering lead and repo admin. Blameless — fix the guardrail, not the developer.
 
 ### Q11
 

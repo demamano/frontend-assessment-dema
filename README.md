@@ -7,6 +7,8 @@
 
 ## Run it
 
+Requires Node 20.19+ (or 22.12+).
+
 ```
 cd app
 npm install

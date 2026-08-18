@@ -1,6 +1,6 @@
 # Part A — Written Questions
 
-**Position applied for:** Front-End Engineer <!-- TODO: replace with the exact title from the job posting -->
+**Position applied for:** Front-End Engineer
 
 ---
 

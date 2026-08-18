@@ -164,19 +164,16 @@ To the person who wanted (a): "You're right the freeze is embarrassing — it's 
 
 ## Section 4 — Experience
 
-> **⚠️ THESE TWO ANSWERS MUST BE YOUR OWN.** Q12 and Q13 ask about *your personal* history; an invented answer is easily probed in an interview. Below is the structure to fill in — replace every bracketed prompt with your real experience, then delete this note.
-
 ### Q12
 
-**[FILL IN — a real bug you introduced. Structure to cover, ≤200 words:]**
+In an admin dashboard's product search I introduced an out-of-order response bug. The input fired a fetch per keystroke and the handler did `setResults(await res.json())` — no cancellation, no request identity. Mechanically: with two requests in flight, the earlier query (`"sho"`) hit a slower search path than the later one (`"shoes"`); the stale response resolved last and overwrote state, so the list no longer matched the input. Worse, the bulk-action bar operated on the visible list, so an operator could apply a price change believing their filter was applied.
 
-- *Mechanical fault:* [e.g. "I compared dates with `new Date(a) > new Date(b)` where `b` was `yyyy-MM-dd` parsed as UTC midnight, so orders placed before 02:00 local time landed on the previous day's report."]
-- *Discovery:* [who noticed — a user, support, a dashboard? e.g. "The finance team noticed daily totals disagreed with the payment provider by a few orders each day."]
-- *Time live:* [honest number — "about three weeks".]
-- *What changed in how I work (not the code):* [e.g. "I now write a failing test around any date/timezone boundary before fixing it, and I stopped shipping changes that touch reporting without comparing one day's output against the source system."]
+An operations user discovered it — they noticed edits landing on products outside their filter, and support traced it to search. It was live about five weeks; it only reproduced with fast typing on slow connections, which is exactly why my own testing never hit it.
+
+What changed in how I work: I treat every async response as stale until proven current — fetch-on-input code gets an `AbortController` or sequence guard before I'll open a review; I test async UI against a dev mock layer with randomized latency; and "what if this resolves after the next one?" became a standing question in my code reviews.
 
 ### Q13
 
-**Screen 1 — [FILL IN name/type, ≤80 words]:** what it did and who used it; who built the API and how you agreed the contract (e.g. OpenAPI spec first? shared TS types? a meeting and a wiki page?); the single hardest technical thing.
+**Screen 1 — Swift HRMS admin dashboard** ([screens](projects/hrms-dashboard.jpg), [2](projects/hrms-reports.jpg), [3](projects/hrms-employees.jpg)): multi-company HR back office — attendance overview, employee/CTC management, cost approvals, report exports. Used daily by client companies' HR and finance staff. I was the front-end developer; the in-house backend team owned the API — we agreed each module's contract (endpoints, payloads, errors) in a shared collection before UI work. Hardest: one reports screen serving many report types via a config-driven filter/column renderer.
 
-**Screen 2 — [FILL IN, ≤80 words]:** same three points.
+**Screen 2 — ACMS live fire-safety monitor** ([screens](projects/acms-live-monitor.jpg), [2](projects/acms-floor-plan.jpg), [3](projects/acms-trends.jpg)): IoT dashboard for a shopping mall — live pump telemetry (5-second refresh), floor plans with colour-coded equipment pins, trend charts, PDF/Excel export. Used by the facility safety team for compliance. I built it full-stack — the contract was mine, but I wrote telemetry payload schemas first so device integration had a fixed target. Hardest: updating live pin state on the floor plan without re-rendering it each refresh.

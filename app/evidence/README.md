@@ -6,7 +6,7 @@ Every render of the memoized `OrderRow` component increments `window.__rowRender
 ([App.tsx](../src/App.tsx), first line of the component body). Reading it before and
 after a keystroke gives the exact number of row renders that keystroke caused.
 
-## Measured numbers (dev build, React 18 StrictMode — initial counts are doubled by design)
+## Measured numbers (dev build; React StrictMode doubles the initial counts by design)
 
 | Action | Rows in DOM before → after | Row renders caused |
 | --- | --- | --- |

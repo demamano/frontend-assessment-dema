@@ -14,19 +14,19 @@ The `useMemo` fix works only if `columns` is the sole unstable prop and its depe
 
 Two other independent defeaters: (1) inline callback props like `onEdit={() => …}`, recreated every render; (2) row objects recreated per keystroke, e.g. a `.filter().map()` that returns new product objects each time.
 
-Actual cause: the keystroke updates search state in a common ancestor, and React re-renders that subtree by default. Broken memoization doesn't cause the re-render — it just makes it cost 500 rows.
+Actual cause: the keystroke updates search state in a common ancestor, and React re-renders that subtree by default. Broken memoization doesn't cause the re-render — it just makes every row pay for it.
 
 ### Q2
 
 **Defects, ranked:**
 
-1. **A failed update silently sticks.** The `catch` swallows the error, `patch.undo()` is never called, and — because `invalidatesTags` only fires when a mutation *fulfills* — a rejected PATCH triggers **no** refetch. Conditions: any PATCH failure (network, 4xx/5xx) while the user views the unfiltered list. What they see: the row flips to the new status and stays there; the save never happened, no error appears, and the truth only returns on a manual reload. First because it silently shows wrong data indefinitely — an integrity failure, not a latency one; ops trusts a status that is false.
+1. **Failed updates are completely silent.** The `catch` swallows the error and nothing tells the user. On any PATCH failure (4xx/5xx, offline) the operator either sees nothing happen, or — if an unfiltered view is on screen — sees the row flip and then quietly flip back when the failure-triggered refetch lands. They believe the change took and discover wrong statuses later. First because it actively misleads: an integrity failure, not an inconvenience.
 
-2. **Optimistic update targets the wrong cache entry.** `updateQueryData('getProducts', {} …)` patches only the cache entry whose arg is exactly `{}`. Conditions: user has any filter/param applied (the normal case). What they see: click "activate", nothing changes for the round-trip until the invalidation refetch lands — reported as "the button is slow / does nothing", and double-clicks follow.
+2. **The optimistic update is a no-op in the normal case.** It patches the cache entry whose arg is exactly `{}`; `updateQueryData` against an uninitialized cache key applies zero patches. Unless some component queried with literally `{}` — real views pass filters/pagination — nothing is patched. Conditions: any non-empty filter arg, i.e. almost always. Seen as: "the status button does nothing for a second", then double-clicks.
 
-3. **Blanket `['Product']` invalidation refetches every cached `getProducts` variant on every mutation.** Conditions: several filter combinations cached, or rapid bulk status edits. What they see: spinners/flicker across lists and request storms after each click.
+3. **Blanket `['Product']` invalidation refetches every subscribed products list on every mutation — including failed ones.** Conditions: several list views/filter combos mounted, or rapid bulk edits. Seen as: flicker and refetch storms after every click.
 
-**False comment:** "the invalidation will refetch anyway" — false on the failure path it annotates: `invalidatesTags` does not run for rejected mutations, so nothing refetches and the un-reverted patch persists (defect 1).
+**False comment:** "the invalidation will refetch *anyway*". The refetch does happen on ordinary HTTP failures — RTK Query invalidates on fulfilled *and* rejected-with-value mutations (source-verified; commonly believed otherwise). "Anyway" is what's false: an aborted mutation, or a baseQuery/`onQueryStarted` that *throws* instead of returning `{error}`, rejects without value → no invalidation, no refetch, and the never-undone patch persists indefinitely. Even when the refetch comes, the screen shows the patched lie until it lands — and keeps it if the refetch itself fails. `patch.undo()` is unconditional and free; the comment deletes it on a conditional promise.
 
 **Looks wrong but is fine:** mutating the draft (`row.status = status`) inside `updateQueryData`. It looks like illegal state mutation, but the callback runs inside Immer, which turns mutations into an immutably-produced next state.
 

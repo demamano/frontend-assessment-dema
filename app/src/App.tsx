@@ -15,12 +15,13 @@ const OrderRow = memo(function OrderRow({ order, selected, onActivate, rowRef }:
   onActivate: (id: string) => void;
   rowRef: (id: string, el: HTMLTableRowElement | null) => void;
 }) {
+  // oxlint-disable-next-line react/immutability -- deliberate dev instrumentation, see evidence/
   window.__rowRenders++;
   return (
     <tr
       ref={(el) => rowRef(order.id, el)}
       tabIndex={selected ? 0 : -1}
-      aria-selected={selected}
+      aria-current={selected ? 'true' : undefined}
       className={selected ? 'selected' : undefined}
       onClick={() => onActivate(order.id)}
     >
@@ -59,6 +60,7 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const rowEls = useRef(new Map<string, HTMLTableRowElement>());
+  const wrapEl = useRef<HTMLDivElement>(null);
 
   const statuses = useMemo(
     () => new Set(statusParam ? (statusParam.split(',') as Status[]) : []),
@@ -90,7 +92,8 @@ export default function App() {
   };
 
   const close = () => {
-    if (openId) rowEls.current.get(openId)?.focus(); // focus back to the row that was open
+    // focus back to the row that was open (or the list, if filters removed it)
+    if (openId) (rowEls.current.get(openId) ?? wrapEl.current)?.focus();
     setOpenId(null);
   };
 
@@ -145,7 +148,7 @@ export default function App() {
         </fieldset>
         <span className="count">{filtered.length} of {ORDERS.length} orders</span>
       </header>
-      <div className="tableWrap" tabIndex={0} onKeyDown={onTableKeyDown} aria-label="Order list">
+      <div className="tableWrap" ref={wrapEl} role="region" tabIndex={0} onKeyDown={onTableKeyDown} aria-label="Order list">
         <table>
           <thead>
             <tr><th>Order #</th><th>Customer</th><th>Status</th><th className="num">Total</th><th>Date</th></tr>
